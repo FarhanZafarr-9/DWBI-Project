@@ -1,0 +1,238 @@
+// Null Pointers | DL3004 Final Project | Aviation Reliability & Performance Data Warehouse
+// Physical model (PostgreSQL, schema dw). Paste into https://dbdiagram.io
+// Constellation schema: 4 fact tables, 8 conformed dimensions.
+// Each dimension also gets an Unknown member (key -1) at load time (not shown here).
+
+Project aviation_dw {
+  database_type: 'PostgreSQL'
+  Note: 'Null Pointers - DL3004 Final Project, Phase 1 physical model'
+}
+
+// ---------------------------------------------------------------- DIMENSIONS
+
+Table dw.dim_date [headercolor: #C4C4C4] {
+  date_key int [pk, note: 'YYYYMMDD']
+  full_date date [unique, not null]
+  day_of_week varchar(9)
+  week_of_year smallint
+  month smallint
+  month_name varchar(9)
+  quarter smallint
+  year smallint
+  season varchar(6)
+  is_weekend boolean
+  is_holiday boolean
+  holiday_name varchar(40)
+  Note: 'Hierarchy: Day > Month > Quarter > Year. Monthly facts use the first day of the month.'
+}
+
+Table dw.dim_time [headercolor: #C4C4C4] {
+  time_key smallint [pk, note: 'Hour 0-23']
+  hour_of_day smallint [unique, not null]
+  time_band varchar(10)
+  is_peak boolean
+  Note: 'Hierarchy: Hour > Time band'
+}
+
+Table dw.dim_airline [headercolor: #C4C4C4] {
+  airline_key int [pk, increment]
+  carrier_code varchar(3) [unique, not null]
+  airline_name varchar(80)
+  Note: 'Flat'
+}
+
+Table dw.dim_airport [headercolor: #C4C4C4] {
+  airport_key int [pk, increment]
+  iata_code char(3) [unique, not null]
+  icao_code varchar(4)
+  airport_name varchar(120)
+  city varchar(80)
+  state char(2)
+  region varchar(10)
+  latitude numeric(9,6)
+  longitude numeric(9,6)
+  elevation_ft int
+  airport_type varchar(20)
+  time_zone varchar(40)
+  Note: 'Hierarchy: Airport > City > State > Region. Role-playing: origin and destination.'
+}
+
+Table dw.dim_route [headercolor: #C4C4C4] {
+  route_key int [pk, increment]
+  origin_code char(3) [not null]
+  dest_code char(3) [not null]
+  route_name varchar(7) [unique, not null, note: 'e.g. ATL-LAX']
+  distance_miles int
+  distance_band varchar(10)
+
+  indexes {
+    (origin_code, dest_code) [unique]
+  }
+  Note: 'Hierarchy: Route > Distance band'
+}
+
+Table dw.dim_aircraft [headercolor: #C4C4C4] {
+  aircraft_key int [pk, increment]
+  tail_number varchar(10) [not null]
+  manufacturer varchar(60)
+  model varchar(60)
+  engine_type varchar(30)
+  year_built smallint
+  age_band varchar(12)
+  row_effective_date date
+  row_expiry_date date
+  is_current boolean
+
+  indexes {
+    (tail_number, is_current)
+  }
+  Note: 'Hierarchy: Manufacturer > Model > Aircraft. SCD Type 2 (optional): tail_number repeats across versions.'
+}
+
+Table dw.dim_flight_status [headercolor: #C4C4C4] {
+  status_key smallint [pk, increment]
+  status_code varchar(12) [unique, not null]
+  flight_status varchar(10) [note: 'On-time, Delayed, Cancelled, Diverted']
+  cancellation_reason varchar(15)
+  delay_category varchar(20)
+  Note: 'Junk dimension'
+}
+
+Table dw.dim_weather_condition [headercolor: #C4C4C4] {
+  weather_condition_key smallint [pk, increment]
+  condition_code varchar(10) [unique, not null]
+  condition varchar(20) [note: 'Clear, Rain, Snow, Fog, Storm']
+  visibility_band varchar(15)
+  Note: 'Flat'
+}
+
+// ---------------------------------------------------------------- FACTS
+
+Table dw.fact_flight [headercolor: #3A3A3A] {
+  flight_key bigint [not null]
+  date_key int [not null]
+  sched_dep_time_key smallint
+  airline_key int [not null]
+  origin_airport_key int [not null]
+  dest_airport_key int [not null]
+  route_key int [not null]
+  aircraft_key int [not null]
+  status_key smallint [not null]
+  flight_number varchar(6) [note: 'Degenerate dimension']
+  dep_delay_min smallint
+  arr_delay_min smallint
+  carrier_delay_min smallint
+  weather_delay_min smallint
+  nas_delay_min smallint
+  security_delay_min smallint
+  late_aircraft_delay_min smallint
+  taxi_out_min smallint
+  taxi_in_min smallint
+  air_time_min smallint
+  distance_miles int
+  is_cancelled boolean
+  is_diverted boolean
+  flight_count smallint [default: 1]
+  etl_batch_id int
+
+  indexes {
+    (flight_key, date_key) [pk]
+  }
+  Note: 'Transaction fact. Grain: one flight leg (one scheduled flight from origin to destination airport on one date). Partitioned by month (RANGE on date_key).'
+}
+
+Table dw.fact_route_demand [headercolor: #3A3A3A] {
+  route_demand_key bigint [pk, increment]
+  date_key int [not null, note: 'First day of the month']
+  airline_key int [not null]
+  route_key int [not null]
+  passengers int
+  seats int
+  departures_performed int
+  etl_batch_id int
+
+  indexes {
+    (date_key, airline_key, route_key) [unique]
+  }
+  Note: 'Periodic snapshot (monthly). Grain: one airline on one route in one month. Load factor = passengers / seats (calculated in a view).'
+}
+
+Table dw.fact_airport_weather [headercolor: #3A3A3A] {
+  weather_key bigint [pk, increment]
+  date_key int [not null]
+  time_key smallint [not null]
+  airport_key int [not null]
+  weather_condition_key smallint
+  temperature_c numeric(4,1)
+  visibility_m int
+  wind_speed_ms numeric(4,1)
+  precipitation_mm numeric(5,1)
+  etl_batch_id int
+
+  indexes {
+    (date_key, time_key, airport_key) [unique]
+  }
+  Note: 'Periodic snapshot (hourly). Grain: one hourly weather observation at one airport. Hour converted to airport local time.'
+}
+
+Table dw.fact_aircraft_route [headercolor: #3A3A3A] {
+  date_key int [not null]
+  aircraft_key int [not null]
+  route_key int [not null]
+  airline_key int [not null]
+  etl_batch_id int
+
+  indexes {
+    (date_key, aircraft_key, route_key, airline_key) [pk]
+  }
+  Note: 'Factless fact. Grain: one aircraft operated by one airline on one route on one date.'
+}
+
+// ---------------------------------------------------------------- RELATIONSHIPS
+
+// Fact_Flight
+Ref: dw.fact_flight.date_key > dw.dim_date.date_key
+Ref: dw.fact_flight.sched_dep_time_key > dw.dim_time.time_key
+Ref: dw.fact_flight.airline_key > dw.dim_airline.airline_key
+Ref: dw.fact_flight.origin_airport_key > dw.dim_airport.airport_key
+Ref: dw.fact_flight.dest_airport_key > dw.dim_airport.airport_key
+Ref: dw.fact_flight.route_key > dw.dim_route.route_key
+Ref: dw.fact_flight.aircraft_key > dw.dim_aircraft.aircraft_key
+Ref: dw.fact_flight.status_key > dw.dim_flight_status.status_key
+
+// Fact_Route_Demand
+Ref: dw.fact_route_demand.date_key > dw.dim_date.date_key
+Ref: dw.fact_route_demand.airline_key > dw.dim_airline.airline_key
+Ref: dw.fact_route_demand.route_key > dw.dim_route.route_key
+
+// Fact_Airport_Weather
+Ref: dw.fact_airport_weather.date_key > dw.dim_date.date_key
+Ref: dw.fact_airport_weather.time_key > dw.dim_time.time_key
+Ref: dw.fact_airport_weather.airport_key > dw.dim_airport.airport_key
+Ref: dw.fact_airport_weather.weather_condition_key > dw.dim_weather_condition.weather_condition_key
+
+// Fact_Aircraft_Route
+Ref: dw.fact_aircraft_route.date_key > dw.dim_date.date_key
+Ref: dw.fact_aircraft_route.aircraft_key > dw.dim_aircraft.aircraft_key
+Ref: dw.fact_aircraft_route.route_key > dw.dim_route.route_key
+Ref: dw.fact_aircraft_route.airline_key > dw.dim_airline.airline_key
+
+// ---------------------------------------------------------------- GROUPS
+
+TableGroup facts {
+  dw.fact_flight
+  dw.fact_route_demand
+  dw.fact_airport_weather
+  dw.fact_aircraft_route
+}
+
+TableGroup dimensions {
+  dw.dim_date
+  dw.dim_time
+  dw.dim_airline
+  dw.dim_airport
+  dw.dim_route
+  dw.dim_aircraft
+  dw.dim_flight_status
+  dw.dim_weather_condition
+}
