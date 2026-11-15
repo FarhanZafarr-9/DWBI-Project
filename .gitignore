@@ -1,0 +1,16 @@
+# Downloaded source data is local only (too large for GitHub)
+Phase1/02_Data_Pack/data/raw_data/*
+!Phase1/02_Data_Pack/data/raw_data/.gitkeep
+Phase1/02_Data_Pack/data/cleaned_data/*
+!Phase1/02_Data_Pack/data/cleaned_data/.gitkeep
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# OS files
+Thumbs.db
+.DS_Store
