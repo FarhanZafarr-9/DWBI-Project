@@ -156,7 +156,10 @@ INSERT INTO project_dw.dim_weather_condition (
     condition_code, condition, visibility_band
 )
 SELECT condition_code,
-       max(condition_code),
+       CASE condition_code
+            WHEN 'CLEAR' THEN 'Clear'
+            WHEN 'PRECIP' THEN 'Precipitation'
+            ELSE 'Unknown' END,
        CASE WHEN max(visibility_m) < 1000 THEN 'Low'
             WHEN max(visibility_m) < 5000 THEN 'Medium'
             ELSE 'High' END

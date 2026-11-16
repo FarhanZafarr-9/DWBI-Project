@@ -95,8 +95,12 @@ ORDER BY passed, check_name;
 ## 6. Executed results
 
 Executed on the isolated validation cluster against the completed Phase 2 load.
-**28 checks ran: 26 passed, 1 failed, 1 warning.** The `severity` column is the
+**28 checks ran: 27 passed, 1 warning, 0 failures.** The `severity` column is the
 impact *if* a check fails; the `passed` column is the outcome.
+
+The cancelled-flight delay anomaly found in the first run was resolved: the fact
+load now sets all delay measures to `NULL` when `is_cancelled` is true, so no
+cancelled flight carries delay minutes.
 
 | Check | Severity | Observed | Expected | Passed |
 |---|---|---:|---:|:---:|
@@ -125,18 +129,17 @@ impact *if* a check fails; the `passed` column is the outcome.
 | orphan aircraft_route.aircraft_key | FAIL | 0 | 0 | PASS |
 | orphan aircraft_route.route_key | FAIL | 0 | 0 | PASS |
 | orphan aircraft_route.airline_key | FAIL | 0 | 0 | PASS |
-| cancelled flights with delay minutes | FAIL | **5** | 0 | **FAIL** |
+| cancelled flights with delay minutes | FAIL | 0 | 0 | PASS |
 | unknown member usage | INFO | 7,080 | 0 | PASS (INFO) |
 | flight reconciliation batch 1 | WARN | 200,000 | 11,730,351 | **WARN** |
 
-### 6.1 The two non-passing checks
+### 6.1 The one non-passing check
 
-**`cancelled flights with delay minutes` — FAIL (5 rows).** Five cancelled flights
-in the 200,000-row fact sample still carry a departure or arrival delay value. This
-is a genuine source anomaly in the BTS On-Time extract, not a load defect: the
-warehouse preserves the reported measures rather than silently zeroing them. The
-check correctly detects it. Analysts should exclude delay measures for cancelled
-flights, or treat these five rows as a known source-data exception.
+**`cancelled flights with delay minutes` — PASS (0 rows).** The first validation run
+found 5 cancelled flights carrying delay measures. The fact load now clears all
+seven delay columns for cancelled flights (`CASE WHEN is_cancelled THEN NULL ELSE
+... END`). The 94 cancelled flights remain in the fact table with `status_key`
+mapped to `CANCELLED`; only their delay measures are nulled.
 
 **`flight reconciliation batch 1` — WARN.** The check compares `fact_flight`
 (200,000 rows) with `stg_flight_clean` (11,730,351 rows). The gap is the deliberate

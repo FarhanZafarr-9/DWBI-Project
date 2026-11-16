@@ -84,6 +84,7 @@ Generated: 2026-11-17 23:51:50
 - T-100 keeps only CLASS = 'F'; other service classes do not carry passenger totals.
 - Load status: all 8 raw staging tables, all clean staging tables, all 8 dimensions and all 4 fact tables were loaded on the isolated validation cluster. Raw and clean staging plus dimensions and two facts are full; `fact_flight` and `fact_aircraft_route` use a deterministic 200k/100k systematic sample because the full 11.7M-row join exhausted local disk. See §7 and `Phase2/DATA_QUALITY_REPORT.md` for the DQ results and the sampling limitation.
 - BTS `Cancelled` / `Diverted` flags are exported as `0.00` / `1.00`; `08_staging_loads.sql` was corrected to cast to numeric before comparison. The 206,801 cancelled flights were recovered from `CancellationCode` during validation.
+- Fact loads aggregate duplicate route/weather keys with `GROUP BY` instead of `ON CONFLICT DO UPDATE`, and clear delay measures on cancelled flights. The unnecessary `row_number()` sort over 11.7M rows was removed.
 
 ## 7. Phase 2 warehouse validation results
 
@@ -103,10 +104,11 @@ Generated: 2026-11-17 23:51:50
 | DW | fact_airport_weather | 171,225 |
 | DW | fact_aircraft_route (sampled) | 99,947 |
 
-**Data quality:** 28 automated checks ran; 26 passed, 1 failed (5 cancelled flights
-carry delay minutes — a source anomaly preserved by the warehouse), 1 warning
-(flight reconciliation reflects the deliberate fact sample). All 19 referential
-integrity checks returned 0 orphan rows.
+**Data quality:** 28 automated checks ran; 27 passed and 1 warning (flight
+reconciliation reflects the deliberate fact sample). The cancelled-flight delay
+anomaly found in the first run was resolved by nulling delay measures for
+cancelled flights in the fact load. All 19 referential integrity checks returned
+0 orphan rows.
 
 Detailed reports: `Phase2/DATA_CLEANING_REPORT.md` and
 `Phase2/DATA_QUALITY_REPORT.md`.
