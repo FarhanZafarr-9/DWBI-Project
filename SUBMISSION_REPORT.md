@@ -1,0 +1,87 @@
+﻿# DWBI Project - Phase 2 Load & Data Quality Report
+
+Generated: 2026-11-17 23:51:50
+
+## 1. Source files loaded into raw staging
+
+| Raw staging table | Rows |
+|---|---:|
+| stg_flight_raw | 11,730,351 |
+| stg_route_demand_raw | 766,206 |
+| stg_weather_raw | 264,364 |
+| stg_faa_master_raw | 319,417 |
+| stg_faa_acftref_raw | 94,216 |
+| stg_airport_raw | 2,036 |
+| stg_airline_raw | 14 |
+| stg_holiday_raw | 22 |
+
+## 2. Flights by year and month (source data)
+
+| Year | Month | Flights | Cancelled | Diverted | Avg dep delay (min) |
+|---:|---:|---:|---:|---:|---:|
+| 2025 | 01 | 539747 | 0 | 0 | 10.3 |
+| 2025 | 02 | 504884 | 0 | 0 | 11.7 |
+| 2025 | 03 | 600872 | 0 | 0 | 11.2 |
+| 2025 | 04 | 583950 | 0 | 0 | 10.4 |
+| 2025 | 05 | 605648 | 0 | 0 | 14.2 |
+| 2025 | 06 | 611575 | 0 | 0 | 19.3 |
+| 2025 | 07 | 631428 | 0 | 0 | 21.5 |
+| 2025 | 08 | 602378 | 0 | 0 | 14.3 |
+| 2025 | 09 | 562439 | 0 | 0 | 8.1 |
+| 2025 | 10 | 605844 | 0 | 0 | 10.3 |
+| 2025 | 11 | 570550 | 0 | 0 | 11.7 |
+| 2025 | 12 | 582304 | 0 | 0 | 18.3 |
+| 2026 | 01 | 544003 | 0 | 0 | 13.1 |
+| 2026 | 02 | 515037 | 0 | 0 | 11.4 |
+| 2026 | 03 | 612102 | 0 | 0 | 17.0 |
+| 2026 | 04 | 597919 | 0 | 0 | 10.7 |
+| 2026 | 05 | 611735 | 0 | 0 | 12.6 |
+| 2026 | 06 | 607577 | 0 | 0 | 17.6 |
+| 2026 | 07 | 631970 | 0 | 0 | 21.4 |
+| 2026 | 08 | 608389 | 0 | 0 | 18.7 |
+
+## 3. Route demand by year (T-100, CLASS = F)
+
+| Year | Route-month rows | Passengers | Seats | Departures |
+|---:|---:|---:|---:|---:|
+| 2025 | 359198 | 845242741 | 1066506009 | 8335263 |
+| 2026 | 242237 | 563656180 | 712331175 | 5589460 |
+
+## 4. Top 10 routes by passengers (T-100, 2025, CLASS = F)
+
+| Origin | Dest | Passengers | Seats | Load factor % |
+|---|---|---:|---:|---:|
+| LAX | JFK | 1463719 | 1685835 | 86.8 |
+| JFK | LAX | 1448659 | 1693981 | 85.5 |
+| ORD | LGA | 1387132 | 1620612 | 85.6 |
+| LGA | ORD | 1382413 | 1622975 | 85.2 |
+| LAX | SFO | 1365324 | 1651121 | 82.7 |
+| ATL | MCO | 1357669 | 1602267 | 84.7 |
+| SFO | LAX | 1342956 | 1653358 | 81.2 |
+| MCO | ATL | 1339829 | 1603352 | 83.6 |
+| LAS | LAX | 1231064 | 1626104 | 75.7 |
+| DEN | PHX | 1198989 | 1544934 | 77.6 |
+
+## 5. Weather observations
+
+| Station | Observations |
+|---|---:|
+| KDTW | 9943 |
+| KPHL | 9720 |
+| KDCA | 9658 |
+| KSAN | 9636 |
+| KDEN | 9224 |
+| KBOS | 9156 |
+| KSEA | 9100 |
+| KLAX | 9082 |
+| KORD | 9049 |
+| KTPA | 9032 |
+
+## 6. Notes
+
+- Raw data is gitignored; only reference CSVs and SQL are version-controlled.
+- Like-for-like YoY: compare 2025 M1-M8 with 2026 M1-M8 (2026 data ends August).
+- T-100 keeps only CLASS = 'F'; other service classes do not carry passenger totals.
+- Load status: all 8 raw staging tables loaded successfully in full. Clean/DW transforms were started but not completed on the validation cluster because of local disk limits; the figures above come from the fully loaded raw staging layer and are verifiable.
+
+
