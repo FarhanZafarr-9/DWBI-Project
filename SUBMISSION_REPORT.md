@@ -82,6 +82,33 @@ Generated: 2026-11-17 23:51:50
 - Raw data is gitignored; only reference CSVs and SQL are version-controlled.
 - Like-for-like YoY: compare 2025 M1-M8 with 2026 M1-M8 (2026 data ends August).
 - T-100 keeps only CLASS = 'F'; other service classes do not carry passenger totals.
-- Load status: all 8 raw staging tables loaded successfully in full. Clean/DW transforms were started but not completed on the validation cluster because of local disk limits; the figures above come from the fully loaded raw staging layer and are verifiable.
+- Load status: all 8 raw staging tables, all clean staging tables, all 8 dimensions and all 4 fact tables were loaded on the isolated validation cluster. Raw and clean staging plus dimensions and two facts are full; `fact_flight` and `fact_aircraft_route` use a deterministic 200k/100k systematic sample because the full 11.7M-row join exhausted local disk. See §7 and `Phase2/DATA_QUALITY_REPORT.md` for the DQ results and the sampling limitation.
+- BTS `Cancelled` / `Diverted` flags are exported as `0.00` / `1.00`; `08_staging_loads.sql` was corrected to cast to numeric before comparison. The 206,801 cancelled flights were recovered from `CancellationCode` during validation.
+
+## 7. Phase 2 warehouse validation results
+
+| Layer | Table | Rows |
+|---|---|---:|
+| Clean | stg_flight_clean | 11,730,351 |
+| Clean | stg_route_demand_clean | 601,435 |
+| Clean | stg_weather_clean | 264,364 |
+| Clean | stg_aircraft_clean | 319,417 |
+| Clean | stg_airport_clean | 2,036 |
+| Clean | stg_airline_clean | 14 |
+| Clean | stg_holiday_clean | 22 |
+| DW | dim_date / dim_time / dim_airline / dim_airport | 731 / 25 / 15 / 2,036 |
+| DW | dim_route / dim_aircraft / dim_flight_status / dim_weather_condition | 7,345 / 319,418 / 5 / 3 |
+| DW | fact_flight (sampled) | 200,000 |
+| DW | fact_route_demand | 232,281 |
+| DW | fact_airport_weather | 171,225 |
+| DW | fact_aircraft_route (sampled) | 99,947 |
+
+**Data quality:** 28 automated checks ran; 26 passed, 1 failed (5 cancelled flights
+carry delay minutes — a source anomaly preserved by the warehouse), 1 warning
+(flight reconciliation reflects the deliberate fact sample). All 19 referential
+integrity checks returned 0 orphan rows.
+
+Detailed reports: `Phase2/DATA_CLEANING_REPORT.md` and
+`Phase2/DATA_QUALITY_REPORT.md`.
 
 

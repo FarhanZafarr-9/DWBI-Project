@@ -71,8 +71,8 @@ SELECT
     CASE WHEN btrim(r.taxi_in) ~ '^[0-9]+$' THEN btrim(r.taxi_in)::smallint END,
     CASE WHEN btrim(r.air_time) ~ '^[0-9]+$' THEN btrim(r.air_time)::smallint END,
     CASE WHEN btrim(r.distance) ~ '^[0-9]+$' THEN btrim(r.distance)::int END,
-    btrim(r.cancelled) = '1',
-    btrim(r.diverted) = '1',
+    coalesce(nullif(btrim(r.cancelled),'')::numeric,0) = 1,
+    coalesce(nullif(btrim(r.diverted),'')::numeric,0) = 1,
     nullif(btrim(r.cancellation_code), '')::char(1)
 FROM project_staging.stg_flight_raw r
 WHERE btrim(r.flight_date) ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
