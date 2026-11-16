@@ -106,10 +106,10 @@ cancelled flight carries delay minutes.
 |---|---|---:|---:|:---:|
 | dim_date volume | FAIL | 731 | 100 | PASS |
 | dim_airport volume | FAIL | 2,036 | 100 | PASS |
-| fact_flight volume | FAIL | 200,000 | 10,000 | PASS |
+| fact_flight volume | FAIL | 469,214 | 10,000 | PASS |
 | fact_route_demand volume | FAIL | 232,281 | 10,000 | PASS |
 | fact_airport_weather volume | FAIL | 171,225 | 10,000 | PASS |
-| fact_aircraft_route volume | FAIL | 99,947 | 10,000 | PASS |
+| fact_aircraft_route volume | FAIL | 99,950 | 10,000 | PASS |
 | orphan fact_flight.date_key | FAIL | 0 | 0 | PASS |
 | orphan fact_flight.time_key | FAIL | 0 | 0 | PASS |
 | orphan fact_flight.airline_key | FAIL | 0 | 0 | PASS |
@@ -130,50 +130,55 @@ cancelled flight carries delay minutes.
 | orphan aircraft_route.route_key | FAIL | 0 | 0 | PASS |
 | orphan aircraft_route.airline_key | FAIL | 0 | 0 | PASS |
 | cancelled flights with delay minutes | FAIL | 0 | 0 | PASS |
-| unknown member usage | INFO | 7,080 | 0 | PASS (INFO) |
-| flight reconciliation batch 1 | WARN | 200,000 | 11,730,351 | **WARN** |
+| unknown member usage | INFO | 16,448 | 0 | PASS (INFO) |
+| flight reconciliation batch 1 | WARN | 469,214 | 11,730,351 | **WARN** |
 
 ### 6.1 The one non-passing check
 
 **`cancelled flights with delay minutes` — PASS (0 rows).** The first validation run
 found 5 cancelled flights carrying delay measures. The fact load now clears all
 seven delay columns for cancelled flights (`CASE WHEN is_cancelled THEN NULL ELSE
-... END`). The 94 cancelled flights remain in the fact table with `status_key`
+... END`). All 8,229 cancelled flights remain in the fact table with `status_key`
 mapped to `CANCELLED`; only their delay measures are nulled.
 
 **`flight reconciliation batch 1` — WARN.** The check compares `fact_flight`
-(200,000 rows) with `stg_flight_clean` (11,730,351 rows). The gap is the deliberate
+(469,214 rows) with `stg_flight_clean` (11,730,351 rows). The gap is the deliberate
 bounded sample described in §6.3, not a dropped row. All other volume and integrity
 checks pass.
 
 ### 6.2 Warehouse analytics (evidence the model is queryable)
 
-**Flights by month — representative 200,000-row sample.**
+**Flights by month — representative 469,214-row sample covering all 19 published
+months (2025-01 to 2026-08).**
 
-| Year | Month | Flights | Avg dep delay | Avg arr delay |
-|---:|---:|---:|---:|---:|
-| 2025 | 01 | 10,794 | 10.3 | 3.4 |
-| 2025 | 02 | 10,098 | 11.0 | 4.8 |
-| 2025 | 03 | 12,018 | 11.4 | 5.6 |
-| 2025 | 04 | 11,679 | 10.0 | 5.5 |
-| 2025 | 05 | 12,113 | 13.9 | 10.0 |
-| 2025 | 06 | 12,231 | 19.0 | 15.4 |
-| 2025 | 07 | 12,629 | 21.8 | 17.6 |
-| 2025 | 08 | 12,047 | 14.2 | 9.0 |
-| 2025 | 09 | 11,249 | 8.7 | 2.8 |
-| 2025 | 10 | 12,117 | 10.3 | 5.9 |
-| 2025 | 11 | 11,411 | 12.4 | 7.0 |
-| 2025 | 12 | 11,646 | 19.6 | 14.4 |
-| 2026 | 01 | 10,880 | 12.8 | 6.3 |
-| 2026 | 02 | 10,301 | 11.5 | 4.4 |
-| 2026 | 03 | 12,242 | 15.6 | 9.1 |
-| 2026 | 04 | 11,958 | 9.8 | 3.9 |
-| 2026 | 05 | 12,235 | 12.5 | 6.1 |
-| 2026 | 06 | 2,352 | 14.5 | 8.4 |
+| Year | Month | Flights | Cancelled | Avg dep delay | Avg arr delay |
+|---:|---:|---:|---:|---:|---:|
+| 2025 | 01 | 21,589 | 623 | 10.2 | 3.6 |
+| 2025 | 02 | 20,196 | 284 | 11.5 | 5.5 |
+| 2025 | 03 | 24,035 | 297 | 11.1 | 5.4 |
+| 2025 | 04 | 23,358 | 188 | 10.6 | 6.0 |
+| 2025 | 05 | 24,226 | 264 | 13.5 | 9.5 |
+| 2025 | 06 | 24,463 | 407 | 18.4 | 14.7 |
+| 2025 | 07 | 25,257 | 559 | 21.8 | 17.7 |
+| 2025 | 08 | 24,095 | 254 | 13.9 | 8.9 |
+| 2025 | 09 | 22,497 | 119 | 8.4 | 2.6 |
+| 2025 | 10 | 24,234 | 140 | 10.2 | 5.7 |
+| 2025 | 11 | 22,822 | 542 | 11.7 | 6.5 |
+| 2025 | 12 | 23,292 | 376 | 19.0 | 13.7 |
+| 2026 | 01 | 21,760 | 1,053 | 12.6 | 6.0 |
+| 2026 | 02 | 20,602 | 468 | 11.4 | 4.3 |
+| 2026 | 03 | 24,484 | 697 | 16.1 | 9.8 |
+| 2026 | 04 | 23,917 | 193 | 10.2 | 4.3 |
+| 2026 | 05 | 24,469 | 214 | 12.7 | 6.3 |
+| 2026 | 06 | 24,303 | 446 | 18.0 | 12.1 |
+| 2026 | 07 | 25,279 | 678 | 21.1 | 15.3 |
+| 2026 | 08 | 24,336 | 427 | 18.5 | 13.6 |
 
-The summer peak (June–July 2025, average departure delay 19–22 min) and the
-September trough (8.7 min) are visible even in the sample. Like-for-like M1–M5
-comparison shows 2026 departure delays are on average ~1 min higher than 2025.
+The summer peak (June–July 2025 and July 2026, average departure delay 18–22 min)
+and the September 2025 trough (8.4 min) are visible. Like-for-like M1–M8 comparison
+shows 2026 departure delays are on average ~1.2 min higher than 2025 (15.1 vs
+13.9 min). January 2026 also has the highest cancellation count (1,053), consistent
+with winter disruption.
 
 **Route demand by year — full T-100 CLASS F load.**
 
@@ -201,20 +206,21 @@ from the 2,036-row airport seed. It is excluded from this business ranking.
 **Weather — top stations by fact rows (full 171,225-row load).** LAS, DEN, SFO,
 SEA, LAX each contribute ~5,720 hourly observations after hour-grain aggregation.
 
-**Flight status distribution in the sample:** 156,155 On-time (78.1%),
-43,751 Delayed (21.9%), 94 Cancelled (0.05%).
+**Flight status distribution in the sample:** 356,319 On-time (76.0%),
+104,666 Delayed (22.3%), 8,229 Cancelled (1.8%).
 
 ### 6.3 Sampling method and limitation
 
 The full 11.7 M-row flight join plus two full-table sorts (`row_number()` over the
 entire clean table and `DISTINCT` over it) exhausted local disk on the validation
-machine (only ~3 GB free). The validation load therefore uses a deterministic
-systematic sample: `raw_id % 50 = 0`, capped at 200,000 flight rows and 100,000
-aircraft-route rows. This spans **2025-01-01 to 2026-06-30** and preserves the
-monthly distribution. Clean staging (11,730,351 flights), all 8 dimensions, route
-demand (232,281 aggregated rows) and weather (171,225 aggregated rows) are loaded
-**in full**. The committed `07_fact_loads.sql` remains the full-load script for a
-production machine with adequate disk; the 200 k sample is a validation-only
+machine. The committed `07_fact_loads.sql` no longer performs either sort, but the
+validation cluster still uses a deterministic systematic sample to keep the run
+short: `raw_id % 25 = 0` with **no `LIMIT`**. This yields 469,214 flight rows and
+99,950 aircraft-route rows and covers **2025-01-01 to 2026-08-31 — all 19 months
+published by the sources**. Clean staging (11,730,351 flights), all 8 dimensions,
+route demand (232,281 aggregated rows) and weather (171,225 aggregated rows) are
+loaded **in full**. The committed `07_fact_loads.sql` remains the full-load script
+for a production machine with adequate disk; the sample is a validation-only
 substitute and is the sole reason the reconciliation check warns.
 
 ### 6.4 Dimension and fact row counts
@@ -229,7 +235,7 @@ substitute and is the sole reason the reconciliation check warns.
 | Dimension | `dim_aircraft` | 319,418 |
 | Dimension | `dim_flight_status` | 5 |
 | Dimension | `dim_weather_condition` | 3 |
-| Fact | `fact_flight` | 200,000 (sampled) |
+| Fact | `fact_flight` | 469,214 (sampled) |
 | Fact | `fact_route_demand` | 232,281 |
 | Fact | `fact_airport_weather` | 171,225 |
-| Fact | `fact_aircraft_route` | 99,947 (sampled) |
+| Fact | `fact_aircraft_route` | 99,950 (sampled) |

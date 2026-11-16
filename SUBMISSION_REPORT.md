@@ -82,7 +82,7 @@ Generated: 2026-11-17 23:51:50
 - Raw data is gitignored; only reference CSVs and SQL are version-controlled.
 - Like-for-like YoY: compare 2025 M1-M8 with 2026 M1-M8 (2026 data ends August).
 - T-100 keeps only CLASS = 'F'; other service classes do not carry passenger totals.
-- Load status: all 8 raw staging tables, all clean staging tables, all 8 dimensions and all 4 fact tables were loaded on the isolated validation cluster. Raw and clean staging plus dimensions and two facts are full; `fact_flight` and `fact_aircraft_route` use a deterministic 200k/100k systematic sample because the full 11.7M-row join exhausted local disk. See §7 and `Phase2/DATA_QUALITY_REPORT.md` for the DQ results and the sampling limitation.
+- Load status: all 8 raw staging tables, all clean staging tables, all 8 dimensions and all 4 fact tables were loaded on the isolated validation cluster. Raw and clean staging plus dimensions and two facts are full; `fact_flight` and `fact_aircraft_route` use deterministic systematic samples (`raw_id % 25 = 0`, ~469k/~100k rows, no `LIMIT`) that cover all 19 published months, 2025-01 to 2026-08. The full 11.7M-row join exhausted local disk. See §7 and `Phase2/DATA_QUALITY_REPORT.md` for the DQ results and the sampling limitation.
 - BTS `Cancelled` / `Diverted` flags are exported as `0.00` / `1.00`; `08_staging_loads.sql` was corrected to cast to numeric before comparison. The 206,801 cancelled flights were recovered from `CancellationCode` during validation.
 - Fact loads aggregate duplicate route/weather keys with `GROUP BY` instead of `ON CONFLICT DO UPDATE`, and clear delay measures on cancelled flights. The unnecessary `row_number()` sort over 11.7M rows was removed.
 
@@ -99,16 +99,17 @@ Generated: 2026-11-17 23:51:50
 | Clean | stg_holiday_clean | 22 |
 | DW | dim_date / dim_time / dim_airline / dim_airport | 731 / 25 / 15 / 2,036 |
 | DW | dim_route / dim_aircraft / dim_flight_status / dim_weather_condition | 7,345 / 319,418 / 5 / 3 |
-| DW | fact_flight (sampled) | 200,000 |
+| DW | fact_flight (sampled, 19 months) | 469,214 |
 | DW | fact_route_demand | 232,281 |
 | DW | fact_airport_weather | 171,225 |
-| DW | fact_aircraft_route (sampled) | 99,947 |
+| DW | fact_aircraft_route (sampled) | 99,950 |
 
 **Data quality:** 28 automated checks ran; 27 passed and 1 warning (flight
 reconciliation reflects the deliberate fact sample). The cancelled-flight delay
 anomaly found in the first run was resolved by nulling delay measures for
 cancelled flights in the fact load. All 19 referential integrity checks returned
-0 orphan rows.
+0 orphan rows; 16,448 facts use the `-1` Unknown member (INFO). The sampled flight
+fact covers all 19 published months, so the monthly trend no longer stops at June.
 
 Detailed reports: `Phase2/DATA_CLEANING_REPORT.md` and
 `Phase2/DATA_QUALITY_REPORT.md`.
