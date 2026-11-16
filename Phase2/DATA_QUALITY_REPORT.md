@@ -148,7 +148,7 @@ checks pass.
 
 ### 6.2 Warehouse analytics (evidence the model is queryable)
 
-**Flights by month — representative 469,214-row sample covering all 19 published
+**Flights by month — representative 469,214-row sample covering all 20 published
 months (2025-01 to 2026-08).**
 
 | Year | Month | Flights | Cancelled | Avg dep delay | Avg arr delay |
@@ -216,7 +216,7 @@ entire clean table and `DISTINCT` over it) exhausted local disk on the validatio
 machine. The committed `07_fact_loads.sql` no longer performs either sort, but the
 validation cluster still uses a deterministic systematic sample to keep the run
 short: `raw_id % 25 = 0` with **no `LIMIT`**. This yields 469,214 flight rows and
-99,950 aircraft-route rows and covers **2025-01-01 to 2026-08-31 — all 19 months
+99,950 aircraft-route rows and covers **2025-01-01 to 2026-08-31 — all 20 months
 published by the sources**. Clean staging (11,730,351 flights), all 8 dimensions,
 route demand (232,281 aggregated rows) and weather (171,225 aggregated rows) are
 loaded **in full**. The committed `07_fact_loads.sql` remains the full-load script
