@@ -35,7 +35,10 @@ Non-functional: free tools only, everything reproducible from GitHub, sized for 
 
 ```
 DWBI-Project/
+├── README.md                           # project overview, Mermaid diagrams, quick start
 ├── PROJECT_CONTEXT.md                  # this file
+├── SUBMISSION_REPORT.md                # Phase 2 load + validation summary
+├── reference.md                        # Phase 1 intent vs Phase 2 results vs Phase 3 handover
 ├── Phase1/
 │   ├── 01_Project_Documentation/       # proposal, requirements, 10 business questions,
 │   │                                   # fact/dimension identification, grain, schema (PDF),
@@ -45,17 +48,25 @@ DWBI-Project/
 │       ├── VERIFICATION_REPORT.md
 │       ├── BONUS_TECH_FEASIBILITY.md
 │       ├── requirements.txt
-│       ├── scripts/                    # 00_build_reference.py, 01_download_data.py, 02_verify_data.py
-│       └── data/                       # reference/ (seeded), raw_data/, cleaned_data/ (empty)
+│       ├── scripts/                    # 00-04 download/build/verify, 05_prepare_staging.py
+│       └── data/                       # reference/ (seeded), raw_data/ (gitignored), cleaned_data/
 └── Phase2/
     ├── 00_create_database.sql          # CREATE DATABASE aviation_dw
     ├── 01_create_schemas.sql           # project_staging, project_dw, project_reporting
     ├── 02_staging_tables.sql           # etl_batch, etl_run_log, stg_rejected_rows + staging tables
     ├── 03_dw_tables.sql                # 8 dimensions, 4 facts, FKs, indexes, partitioning
-    └── 99_reset_database.sql           # drops the three schemas (destructive)
+    ├── 04_seed_dimensions.sql          # -1 Unknown member in every dimension
+    ├── 05_data_quality_checks.sql      # 28 checks -> project_staging.dq_check_result
+    ├── 06_dimension_loads.sql          # clean staging -> dimensions
+    ├── 07_fact_loads.sql               # clean staging -> facts (full-load script)
+    ├── 08_staging_loads.sql            # raw CSVs -> raw staging -> clean staging
+    ├── 99_reset_database.sql           # drops the three schemas (destructive)
+    └── DATA_*_REPORT.md / Data_*_Report.pdf   # cleaning and DQ reports
 ```
 
-Run order for Phase 2 SQL: `00` → `01` → `02` → `03`. `99` is a teardown script only.
+Run order: Python `05_prepare_staging.py` first, then SQL `00` → `01` → `02` → `03` →
+`04` → `08` → `06` → `07` → `05`. `05` runs last despite its number because it checks
+the loaded data; `99` is a teardown script only. See `Phase2/README.md`.
 Python data pack: `pip install -r Phase1/02_Data_Pack/requirements.txt`, then `python scripts/01_download_data.py all`, then `python scripts/02_verify_data.py`. T-100 is manual (`... t100` prints the steps).
 
 ## 4. Dimensional model (Phase 1 design)
@@ -144,8 +155,8 @@ The Phase 1 physical model (`schema.dbml`, `Schema.pdf`) uses schema **`dw`**, w
 
 ## 8. Current status and next steps
 
-- Phase 1 (design, 30%): **documents and data pack present**.
-- Phase 2 (implementation, 40%): **database/schema/table DDL present**; ETL scripts, dimension loads, fact loads, quality checks and audit population are still to be written.
-- Phase 3 (analytics & BI, 30%): not started — OLAP queries, marts, dashboards.
+- Phase 1 (design, 30%): **complete** — documents and data pack present.
+- Phase 2 (implementation, 40%): **complete and validated** — all schemas, staging, dimensions, facts, ETL, DQ checks and reports are in the repo. Results: 27 DQ checks pass, 1 documented warning, 0 failures; all 19 FK orphan checks return 0. `fact_flight` and `fact_aircraft_route` use a deterministic 20-month sample; all other loads are full. See `SUBMISSION_REPORT.md`.
+- Phase 3 (analytics & BI, 30%): not started — OLAP queries, reporting views, indexing report, dashboards and business insights.
 
-Suggested next work: run the DDL on a local PostgreSQL instance, load the reference CSVs into dimensions, write the staging → `project_dw` ETL with batch logging and rejects, then build the reporting views that answer the 10 questions.
+Suggested next work: build `project_reporting` views for the 10 business questions (especially the high-demand / low-reliability cross-fact join), then the analytical and OLAP SQL, indexing report and Power BI dashboards. `reference.md` maps each Phase 3 deliverable to the Phase 2 input it builds on.

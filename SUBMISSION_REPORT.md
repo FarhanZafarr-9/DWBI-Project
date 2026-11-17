@@ -40,6 +40,13 @@ Generated: 2026-11-17 23:51:50
 | 2026 | 07 | 631970 | 0 | 0 | 21.4 |
 | 2026 | 08 | 608389 | 0 | 0 | 18.7 |
 
+**Note on the Cancelled / Diverted columns above:** this table is the raw source
+summary produced before the BTS flag-parsing fix. BTS exports these flags as
+`0.00` / `1.00`, so the original string comparison reported zero for every month.
+The corrected load casts to numeric first and recovers **206,801 cancelled flights**
+in the full source; **8,229** of them are in the validated 469,214-row flight sample.
+The warehouse figures are the authoritative ones — see §6 and §7.
+
 ## 3. Route demand by year (T-100, CLASS = F)
 
 | Year | Route-month rows | Passengers | Seats | Departures |
